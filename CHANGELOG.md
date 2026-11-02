@@ -3,6 +3,11 @@
 > 每个版本一节，**一条一行**，说用户能感知的变化。
 > 格式与规矩见 [UPDATING.md](./UPDATING.md)。
 
+## 0.1.3 — 2026-11-03
+
+- 倍率胶囊：按平台自己的 `tokensPerComputePoint` 换算成「相对 Chatbox AI 3.5 的计算点消耗倍数」（显示用，不参与路由）
+- README / docs 补上计算点与 token 的换算表（Lite 200 万点 ≈ 1330 万 `deepseek-v4.1-flash` 输入 token）
+
 ## 0.1.2 — 2026-11-03
 
 - 脱敏：测试用例与注释里不再出现真实 license key（历史一并重写）

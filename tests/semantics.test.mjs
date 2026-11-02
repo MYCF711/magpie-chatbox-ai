@@ -18,6 +18,7 @@ import { buildModels, fromLive } from "../src/models.mjs"
 import { hasImageInput, catalogSupportsImage } from "../src/chat.mjs"
 import { usageFromDetail } from "../src/license.mjs"
 import { licenseFromConfig, LICENSE_KEY_RE } from "../src/local.mjs"
+import { rateOf } from "../src/context.mjs"
 
 const KEY = "00000000-0000-4000-8000-000000000000"
 
@@ -167,7 +168,7 @@ test("fromLive：apiStyle 决定 api.npm / api.url（四条网关）", () => {
   assert.equal(google.capabilities.input.image, true)
 })
 
-test("fromLive：价格只进 cost，不据此推导 free/rate（Chatbox 按计算点计费，没有公开倍率）", () => {
+test("fromLive：官方价进 cost，倍率按计算点换算，free 绝不从价格反推", () => {
   const entry = fromLive({
     modelId: "m",
     modelName: "M",
@@ -176,8 +177,42 @@ test("fromLive：价格只进 cost，不据此推导 free/rate（Chatbox 按计�
     pricing: { officialInput: 0.3, officialOutput: 1.2, tokensPerComputePoint: 3.33 },
   })
   assert.deepEqual(entry.cost, { input: 0.3, output: 1.2, cache: { read: 0, write: 0 } })
+  assert.equal(entry.rate, 1)
   assert.equal("free" in entry, false)
-  assert.equal("rate" in entry, false)
+})
+
+// ── 倍率：相对 chatboxai-3.5 的计算点倍数 ────────────────────────
+
+test("rateOf：有 tokensPerComputePoint 就用它换算（3.33 / tpc）", () => {
+  // deepseek-v4.1-flash：6.67 token/点 → 3.33/6.67 = 0.5x
+  assert.equal(rateOf({ in: 0.15, out: 0.6, tpc: 6.67 }), 0.5)
+  // gpt-6-astra：0.1 token/点 → 33.3x
+  assert.equal(rateOf({ in: 10, out: 50, tpc: 0.1 }), 33.3)
+  // 基准模型自己 = 1x
+  assert.equal(rateOf({ in: 0.3, out: 1.2, tpc: 3.33 }), 1)
+})
+
+test("rateOf：没有 tpc 时退回官方输入价比（同一件事的另一种写法）", () => {
+  assert.equal(rateOf({ in: 0.15, out: 0.6 }), 0.5)
+  assert.equal(rateOf({ in: 10, out: 50 }), 33.33)
+})
+
+test("rateOf：没有价格 → 0（不猜、不编造）", () => {
+  assert.equal(rateOf(null), 0)
+  assert.equal(rateOf({}), 0)
+  assert.equal(rateOf({ in: 0, out: 0 }), 0)
+})
+
+test("fromLive：条目带上倍率，且不碰 free", () => {
+  const entry = fromLive({
+    modelId: "m",
+    modelName: "M",
+    apiStyle: "openai",
+    capabilities: [],
+    pricing: { officialInput: 0.15, officialOutput: 0.6, tokensPerComputePoint: 6.67 },
+  })
+  assert.equal(entry.rate, 0.5)
+  assert.equal("free" in entry, false)
 })
 
 // ── 本机导入：只读、不猜 ─────────────────────────────────────────

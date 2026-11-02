@@ -114,3 +114,47 @@ google 用 `x-goog-api-key`、其余 `Authorization: Bearer`。
 - 没有列生图模型（`imageModels`）：它们的调用面是 `/api/images/*` 与 Gemini 图像端点，
   与 chat 插件的 `fetch` 契约不同；先不做，避免 chat 列表里出现选不得的条目。
 - 没有把 `chatbox-agent-mode: true` 发出去：它会改变额度口径，未验证，保持官方默认。
+
+## 11. 倍率与计算点换算
+
+Chatbox 没有单独叫「倍率」的字段。能拿到的是每条模型的：
+
+```json
+"pricing": { "tokensPerComputePoint": 6.67, "officialInput": 0.15, "officialOutput": 0.6,
+             "tieredPricing": [] }
+```
+
+`tokensPerComputePoint`（下称 tpc）是「1 计算点能换多少 token」。它和官方美元价是同一件事：
+
+```
+1 计算点 = $0.000001 的官方成本
+点数/百万 token = 1 / officialInput        （input）
+```
+
+实测 63 条里 59 条满足 `1 / tpc == officialInput`（±0.011 的四舍五入误差）；剩下 4 条
+（`claude-sonnet-4.6`、`claude-sonnet-4.6-thinking`、`gpt-5.6-sol`、`kimi-k3`）是厂商自己
+把 tpc 舍成了 0.33 或没跟着涨价同步，不是另一套倍率。
+
+所以插件里的 `rate` 是**推导值**，口径固定为「相对基准模型 `chatboxai-3.5` 的计算点消耗倍数」：
+
+```
+rate = tpc(chatboxai-3.5) / tpc(model) = 3.33 / tpc(model)      （没有 tpc 时用 officialInput 比）
+```
+
+- 基准模型自己 = 1.00x
+- `deepseek-v4.1-flash`（6.67 token/点）= 0.50x
+- `gpt-6-astra`（0.1 token/点）= 33.30x
+- 这是**消耗倍数，不是折扣**；magpie 的倍率胶囊只用于显示，不参与路由（HOOKS 十一之三）
+
+### 计划点数 → token
+
+官方定价页（`/model-pricing`）公布的每计划点数和 `tokensPerComputePoint` 完全对得上：
+Lite 2,000,000 点 → DeepSeek V4 Flash 13.3M tokens（2e6 × 6.67 ≈ 13.34M）。
+
+| 计划 | 点/月 | `deepseek-v4.1-flash` 输入 tokens | 输出 tokens（4 倍价） |
+|---|---|---|---|
+| Lite | 2,000,000 | ≈ 1,330 万 | ≈ 330 万 |
+| Pro | 12,000,000 | ≈ 8,000 万 | ≈ 2,000 万 |
+| Pro+ | 30,000,000 | ≈ 2 亿 | ≈ 5,000 万 |
+
+免费计划不走点数：固定 **10,000 unified tokens / 天**，只能用 `basic` 组（26 个模型）。

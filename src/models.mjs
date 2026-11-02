@@ -40,7 +40,11 @@ export function fromLive(m) {
     context: Number(m.contextWindow) || undefined,
     price:
       pricing && Number.isFinite(Number(pricing.officialInput)) && Number.isFinite(Number(pricing.officialOutput))
-        ? { in: Number(pricing.officialInput), out: Number(pricing.officialOutput) }
+        ? {
+            in: Number(pricing.officialInput),
+            out: Number(pricing.officialOutput),
+            tpc: Number(pricing.tokensPerComputePoint) || 0,
+          }
         : null,
   })
 }
