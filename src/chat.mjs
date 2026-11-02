@@ -78,6 +78,8 @@ export function hasImageInput(body) {
     const type = String(node.type || "")
     if (type === "image_url" || type === "image" || type === "input_image") return true
     if (node.image_url) return true
+    // Gemini：inlineData / fileData（大小写两种拼法都见过）
+    if (node.inlineData || node.inline_data || node.fileData || node.file_data) return true
     return Object.values(node).some((v) => (typeof v === "object" ? look(v, depth + 1) : false))
   }
   return look(body.messages ?? body.input ?? [])
@@ -98,7 +100,7 @@ async function errorFromResponse(res, { modelId = "", knownModel = true } = {}) 
     return errorResponse(
       404,
       "model_not_found",
-      `${PROVIDER_NAME} 不认识模型 ${modelId || "（请求里没有 model）"}：${e.message}`,
+      `不认识模型 ${modelId || "（请求里没有 model）"}：${e.message}`,
     )
   }
   return errorResponse(e.status || 502, e.code || "upstream_error", e.message)
@@ -119,14 +121,14 @@ export function createChatFetch(getAuth) {
       return errorResponse(
         401,
         "sign_in_required",
-        `${PROVIDER_NAME} 未登录：请先在 magpie 里添加一个 Chatbox AI 账号`,
+        "未登录：请先在 magpie 里添加一个 Chatbox AI 账号",
       )
     }
 
     const req = input instanceof Request ? input : null
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : req?.url || ""
     if (!GATEWAY_PATH.test(url)) {
-      return errorResponse(501, "not_implemented", `${PROVIDER_NAME} 不代理这个端点：${url}`)
+      return errorResponse(501, "not_implemented", `不代理这个端点：${url}`)
     }
 
     const isAnthropic = url.includes("/gateway/anthropic/")
@@ -177,9 +179,9 @@ export function createChatFetch(getAuth) {
     } catch (e) {
       const msg = String(e?.message || e)
       if (/abort/i.test(String(e?.name || ""))) {
-        return errorResponse(504, "upstream_timeout", `${PROVIDER_NAME} 请求被中断：${msg}`)
+        return errorResponse(504, "upstream_timeout", `请求被中断：${msg}`)
       }
-      return errorResponse(503, "upstream_unavailable", `连不上 ${PROVIDER_NAME} 网关（api.chatboxai.app）：${msg}`)
+      return errorResponse(503, "upstream_unavailable", `连不上 Chatbox 网关（api.chatboxai.app）：${msg}`)
     }
 
     if (!res.ok) return errorFromResponse(res, { modelId, knownModel })
