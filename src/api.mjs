@@ -41,7 +41,8 @@ export function fromUpstream(status, json, text, url) {
     String(err?.detail || err?.message || json?.message || text || "")
       .trim()
       .slice(0, 400) || `HTTP ${status}`
-  const detail = `${PROVIDER_NAME} 上游返回 ${status}${upstreamCode ? `（${upstreamCode}）` : ""}：${message}`
+  // 宿主会在错误前面加自己的 provider 名，这里不要再重复一遍
+  const detail = `上游返回 ${status}${upstreamCode ? `（${upstreamCode}）` : ""}：${message}`
 
   if (status === 401) {
     // 只有「key 不存在 / 会话失效」才是登录问题
