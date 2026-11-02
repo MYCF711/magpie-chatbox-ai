@@ -3,7 +3,7 @@
 // ⚠ 改这里，不要改各个 hook 文件里的常量。
 //   针脚模块只关心「怎么填这一个针脚」，厂商信息全在这儿。
 
-import { CATALOG } from "./catalog.mjs"
+import { CATALOG, CATALOG_BY_ID } from "./catalog.mjs"
 
 /** 厂商 id：agent 用 `<id>/<model>` 命名，改完全世界都要跟着改 */
 export const PROVIDER = "chatbox-ai"
@@ -77,6 +77,34 @@ export const ICON =
 // 这里用的是**厂商自己在 model_list 里声明的 contextWindow**（不是猜的），
 // 而且只是未登录时的兜底 —— 登录后 provider.models 用账号自己的实时目录替换。
 
+// ── 倍率 ────────────────────────────────────────────────────────────
+//
+// Chatbox 按「计算点」计价：模型目录里每条都带 `pricing.tokensPerComputePoint`
+// （1 计算点能换多少 token）与 `officialInput/officialOutput`（官方美元价/百万 token）。
+// 两者是同一件事的两种写法 —— 1 计算点 = $0.000001 的官方成本，所以
+// 1/tokensPerComputePoint == officialInput（实测 63 条里 59 条精确吻合，其余 4 条是
+// 厂商自己四舍五入/未同步）。**没有另一个「厂商倍率」字段**。
+//
+// magpie 的 `rate` 是「相对官方价的倍数」。这里用**相对基准模型 chatboxai-3.5**
+// （免费计划的默认模型，3.33 token/点）来算：rate = 3.33 / 该模型的 token/点，
+// 也就是「同样一句话，它比 Chatbox AI 3.5 多/少烧几倍计算点」。口径写在 README 与
+// docs/internals.md，**不是折扣**。
+export const RATE_BASE_MODEL = "chatboxai-3.5"
+const BASE_TPC = CATALOG_BY_ID[RATE_BASE_MODEL]?.price?.tpc || 0
+const BASE_INPUT = CATALOG_BY_ID[RATE_BASE_MODEL]?.price?.in || 0
+
+const round2 = (n) => Math.round(n * 100) / 100
+
+/** 相对 chatboxai-3.5 的计算点消耗倍数；算不出来返回 0（不猜） */
+export function rateOf(price) {
+  if (!price) return 0
+  const tpc = Number(price.tpc)
+  if (Number.isFinite(tpc) && tpc > 0 && BASE_TPC > 0) return round2(BASE_TPC / tpc)
+  const input = Number(price.in)
+  if (Number.isFinite(input) && input > 0 && BASE_INPUT > 0) return round2(input / BASE_INPUT)
+  return 0
+}
+
 /** [id, 显示名, 上下文窗口, reasoning 档位] —— 从 catalog 派生的兼容视图 */
 export const MODELS = CATALOG.map((m) => [
   m.id,
@@ -95,6 +123,7 @@ export function entryOf(m) {
   const toolcall = Array.isArray(m.caps) ? m.caps.includes("tool_use") : m.toolcall !== false
   const context = Number.isFinite(m.context) && m.context > 0 ? m.context : undefined
   const price = m.price || null
+  const rate = rateOf(price)
   const gateway = GATEWAYS[m.apiStyle] || GATEWAYS.openai
   return {
     id: m.id,
@@ -117,6 +146,8 @@ export function entryOf(m) {
       output: { text: true },
     },
     ...(reasoning ? { variants: { low: {}, medium: {}, high: {} } } : {}),
+    // 倍率：相对 chatboxai-3.5 的计算点倍数（display-only，不参与路由）
+    ...(rate > 0 ? { rate } : {}),
   }
 }
 

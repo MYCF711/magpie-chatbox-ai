@@ -33,20 +33,24 @@ Chatbox 是那个跨平台 AI 客户端（`Chatbox.exe`）。它自带一整套�
 
 **DeepSeek / 智谱 GLM / 月之暗面 Kimi / 阿里 Qwen / 字节豆包 / MiniMax / OpenAI GPT / Anthropic Claude / Google Gemini / xAI Grok** —— 各家最新的一版都在；登录后跟随平台目录上下架。
 
-| 发行商 | 代表模型 | 上下文 | 收图 | 说明 |
-|---|---|---|---|---|
-| DeepSeek | `deepseek-v4.1-flash` | 1.02M | ✓ | 免费计划可用，思考档齐全 |
-| DeepSeek | `deepseek-v4-pro` | 1.02M | ✗ | 免费计划可用 |
-| 智谱 | `glm-5.3` | 1M | ✗ | 免费计划可用 |
-| 月之暗面 | `kimi-k2.7-code` | 1M | ✓ | 免费计划可用，写代码向 |
-| 阿里 | `qwen3.8-flash` | 1M | ✓ | 免费计划可用 |
-| 字节 | `doubao-seed-2-1-pro` | 256K | ✓ | 免费计划可用 |
-| OpenAI | `gpt-6-luna` | 1.05M | ✓ | 免费计划可用 |
-| Anthropic | `claude-haiku-5-5` | 1M | ✓ | 免费计划可用 |
-| OpenAI | `gpt-6-astra` | 1.05M | ✓ | **需要付费计划**（免费调会提示升级） |
-| Anthropic | `claude-opus-5-5` | 1M | ✓ | **需要付费计划** |
-| Google | `gemini-4-argon` | 1.05M | ✓ | **需要付费计划** |
-| xAI | `grok-4.7` | 1M | ✓ | **需要付费计划** |
+| 发行商 | 代表模型 | 上下文 | 收图 | 倍率 | 说明 |
+|---|---|---|---|---|---|
+| DeepSeek | `deepseek-v4.1-flash` | 1.02M | ✓ | 0.50x | 免费计划可用，思考档齐全 |
+| DeepSeek | `deepseek-v4-pro` | 1.02M | ✗ | 2.19x | 免费计划可用 |
+| 智谱 | `glm-5.3` | 1M | ✗ | 3.78x | 免费计划可用 |
+| 月之暗面 | `kimi-k2.7-code` | 1M | ✓ | 3.17x | 免费计划可用，写代码向 |
+| 阿里 | `qwen3.8-flash` | 1M | ✓ | 0.38x | 免费计划可用 |
+| 字节 | `doubao-seed-2-1-pro` | 256K | ✓ | 3.08x | 免费计划可用 |
+| OpenAI | `gpt-6-luna` | 1.05M | ✓ | 0.33x | 免费计划可用 |
+| Anthropic | `claude-haiku-5-5` | 1M | ✓ | 0.33x | 免费计划可用 |
+| OpenAI | `gpt-6-astra` | 1.05M | ✓ | 33.30x | **需要付费计划**（免费调会提示升级） |
+| Anthropic | `claude-opus-5-5` | 1M | ✓ | 13.32x | **需要付费计划** |
+| Google | `gemini-4-argon` | 1.05M | ✓ | 6.66x | **需要付费计划** |
+| xAI | `grok-4.7` | 1M | ✓ | 6.66x | **需要付费计划** |
+
+> 倍率的基准是 **Chatbox AI 3.5 = 1.00x**：同样一句话，这个模型比基准多烧几倍「计算点」。
+> 数字来自平台自己的 `tokensPerComputePoint`（每 1 计算点能换多少 token），
+> 与官方美元价是同一件事的两种写法 —— **它是消耗倍数，不是折扣**。
 
 > 免费计划能调的是平台 `basic` 组里的 26 个模型；`advanced` 组（GPT-6 旗舰、Claude Opus、Gemini 4 等）需要升级，
 > 插件会把上游的「该模型需要更高套餐」原样报出来，并且只搁置这一个模型，不影响账号和其他模型。
@@ -59,6 +63,17 @@ Chatbox 是那个跨平台 AI 客户端（`Chatbox.exe`）。它自带一整套�
 免费计划每天 10,000 tokens（北京时间 00:00 重置），按所有模型共享。进度条显示「今日额度」，
 生图额度单独一行（每月 5 张）。额度透支后上游会拒绝继续生成，插件把它报成「额度已用完，等重置」，
 不会把这个账号标成登录失效。
+
+**Chatbox 自己的付费计划按「计算点」计费**，1 计算点 = 官方成本 $0.000001，所以点数和 token 的换算是：
+
+| 计划 | 计算点 / 月 | `deepseek-v4.1-flash` 输入 tokens | 折合输出 tokens |
+|---|---|---|---|
+| Lite | 2,000,000 | 约 1,330 万 | 约 330 万 |
+| Pro | 12,000,000 | 约 8,000 万 | 约 2,000 万 |
+| Pro+ | 30,000,000 | 约 2 亿 | 约 5,000 万 |
+
+换算口径：1 计算点 = 6.67 个 `deepseek-v4.1-flash` 输入 token；输出按官方价 4 倍折算 ≈ 1.67 个。
+换其他模型时把 6.67 换成该模型的 `tokensPerComputePoint` 即可（倍率列的倒数关系）。
 
 ---
 
